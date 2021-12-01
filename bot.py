@@ -4,10 +4,18 @@ import webparser, settings
 
 from sqlighter import database
 from discord.ext import commands, tasks
+from discord.ext.commands import CommandNotFound
 
 
 intents = discord.Intents().all()
 bot = commands.Bot(command_prefix=settings.config["PREFIX"], intents=intents)
+
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, CommandNotFound):
+        return
+    raise error
 
 
 @bot.event
