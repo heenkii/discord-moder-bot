@@ -1,1 +1,1 @@
-# Discord-moder-bot
+# discord_moder_bot
