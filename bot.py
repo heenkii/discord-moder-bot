@@ -1,4 +1,3 @@
-from typing import ParamSpecArgs
 import discord, discord.utils, datetime
 import webparser, settings
 
@@ -105,20 +104,21 @@ async def set_role_message(ctx, argv="")->None:
 --------------------
  Добавить роль
 --------------------
-!get_role 
-- {roles_lst}
+{settings.config["PREFIX"]}get_role 
 
 ------------------
  Удалить роль
 ------------------
-!delete_role 
+{settings.config["PREFIX"]}delete_role 
+
+
 - {roles_lst}
 '''
             await ctx.send(message)
         else:
-            await ctx.send("""Доступных ролей нету
+            await ctx.send(f"""Доступных ролей нету
 --------------------
-/get_role [role_name] - добавить роль""")
+{settings.config["PREFIX"]}get_role [role_name] - добавить роль""")
     db.close()
 
 
@@ -127,7 +127,8 @@ async def get_role(ctx, argv="")->None:
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
     db = database(ctx.guild.id)
     if role_name in db.get_roles():
-        if role_name in ctx.author.roles:
+        user_roles = [role.name for role in ctx.message.author.roles if role.name != "@everyone"]
+        if role_name in user_roles:
             await ctx.reply("Роль уже добавлена")
         else:
             try:
@@ -136,8 +137,10 @@ async def get_role(ctx, argv="")->None:
                 await ctx.reply(f"{ctx.author.name} добавил роль {role_name}")
             except:
                 await ctx.reply("При добавлении роли произошла ошибка")
+    elif role_name in db.get_default_roles():
+        await ctx.reply("Это дефолтная роль")
     else:
-        await ctx.reply("Такой роли на сервере не существует или ее нельзя добавить")
+        await ctx.reply("Такая роль не существует или ее нельзя добавить")
     db.close()
 
 
@@ -145,14 +148,12 @@ async def get_role(ctx, argv="")->None:
 async def delete_role(ctx)->None:
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
     db = database(ctx.guild.id)
-    roles = db.get_roles()
-    default_roles = db.get_default_roles()
-    server_roles = {role.mention:role for role in ctx.guild.roles if role.mention != "@everyone"}
-    if role_name in default_roles or role_name not in roles:
+    user_roles = {role.name:role for role in ctx.message.author.roles if role.name != "@everyone"}
+    if role_name in db.get_default_roles() or role_name not in db.get_roles():
         await ctx.reply("Эту роль невозможно удалить")
-    elif role_name in server_roles:
+    elif role_name in user_roles:
         #delete role
-        await ctx.author.remove_roles(server_roles[role_name])
+        await ctx.author.remove_roles(user_roles[role_name])
         await ctx.reply(f"{ctx.author.name} удалил роль {role_name}")
     else:
         await ctx.reply("Такая роль не существует или не принадлежит вам")
@@ -173,6 +174,8 @@ async def add_role_for_users(ctx)->None:
                 db.delete_default_role(role_name)
             db.add_role(role_name)
             await ctx.send(f"Добавлена роль {role_name}")
+        elif role_name in db.get_roles():
+            await ctx.send("Роль уже была добавлена")
         else:
             await ctx.send("Такой роли на сервере нет")
     db.close()
@@ -188,6 +191,8 @@ async def delete_role_for_users(ctx)->None:
         if role_name in db.get_roles() and role_name in server_roles:
             db.delete_role(role_name)
             await ctx.send(f"Удалена роль {role_name}")
+        if role_name not in db.get_roles():
+            await ctx.send("Роль и так не добавлена")
         else:
             await ctx.send("Такой роли на сервере нет")
     db.close()
@@ -197,7 +202,6 @@ async def delete_role_for_users(ctx)->None:
 
 @bot.command(name="add_default_role")
 async def add_default_role(ctx)->None:
-    '''если роль обычная, то удаляем ее из обычных и добавляем в дефолтные'''
     db = database(ctx.guild.id)
     if ctx.author.id in db.get_admins() or ctx.author.id == int(settings.config["OWNER_ID"]):
         server_roles = [role.name for role in ctx.guild.roles if role.name != "@everyone"]
@@ -208,6 +212,8 @@ async def add_default_role(ctx)->None:
                 db.delete_role(role_name)
             db.add_default_role(role_name)
             await ctx.send(f"Добавлена базовая роль {role_name}")
+        elif role_name in db.get_default_roles():
+            await ctx.send("Базовая роль уже была добавлена")
         else:
             await ctx.send("Такой роли на сервере нет")
     db.close()
@@ -223,6 +229,8 @@ async def delete_default_role(ctx)->None:
         if role_name in db.get_default_roles() and role_name in server_roles:
             db.delete_role(role_name)
             await ctx.send(f"Удалена роль {role_name}")
+        elif role_name not in db.get_default_roles():
+            await ctx.send("Базовая роль и так не добавлена")
         else:
             await ctx.send("Такой роли на сервере нет")
     db.close()

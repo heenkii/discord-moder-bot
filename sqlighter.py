@@ -20,13 +20,13 @@ class database:
         """)
 
 
-    def get_values(self, tab)->list[int]:
+    def get_values(self, tab)->list:
         values = [val[0] for val in self.sql.execute(f"SELECT {tab} FROM {self.table}") if val[0] != None]
         return values
 
 
     #get all active servers
-    def get_servers(self)->list[int]:
+    def get_servers(self)->list:
         ans = self.sql.execute('SELECT name FROM sqlite_master WHERE type = "table"').fetchall()
         ans = [int(server_id[0].split("_")[1]) for server_id in ans]
         return ans
@@ -43,7 +43,7 @@ class database:
             self.sql.execute(f"DELETE FROM {self.table} WHERE admins = ?", (user_id, ))
             self.db.commit()
 
-    def get_admins(self)->list[int]:
+    def get_admins(self)->list:
         return self.get_values("admins")
 
 
@@ -60,7 +60,7 @@ class database:
             self.sql.execute(f"DELETE FROM {self.table} WHERE log_channel = ?", (channel_id, ))
             self.db.commit()
 
-    def get_log_channel(self):
+    def get_log_channel(self)->int:
         channels = self.get_values("log_channel")
         if len(channels) == 1:
             return channels[0]
@@ -96,7 +96,7 @@ class database:
             self.sql.execute(f"DELETE FROM {self.table} WHERE roles = ?", (role_name, ))
             self.db.commit()
 
-    def get_roles(self):
+    def get_roles(self)->list:
         return self.get_values("roles")
 
 
@@ -105,12 +105,12 @@ class database:
             self.sql.execute(f"INSERT INTO {self.table} (default_roles) VALUES (?)", (role_name, ))
             self.db.commit()
 
-    def delete_default_role(self, role_name):
+    def delete_default_role(self, role_name)->None:
         if role_name in self.get_default_roles():
             self.sql.execute(f"DELETE FROM {self.table} WHERE default_roles = ?", (role_name, ))
             self.db.commit()
 
-    def get_default_roles(self):
+    def get_default_roles(self)->list:
         return self.get_values("default_roles")
 
 
