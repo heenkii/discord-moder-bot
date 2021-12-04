@@ -1,4 +1,5 @@
 import discord, discord.utils, datetime
+from discord.activity import Game
 import webparser, settings
 
 from sqlighter import database
@@ -13,13 +14,18 @@ bot = commands.Bot(command_prefix=settings.config["PREFIX"], intents=intents)
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, CommandNotFound):
+        print(datetime.datetime.now())
         return
     raise error
 
 
 @bot.event
 async def on_ready()->None:
+    await bot.change_presence(activity=discord.Game(name="Hentaichik YK inc."))
+    print("----------------------------------------")
+    print(datetime.datetime.now())
     print(f"{bot.user} has connected to Discord!")
+    print("----------------------------------------")
     send_schedule.start()
 
 
@@ -102,15 +108,10 @@ async def set_role_message(ctx, argv="")->None:
             roles_lst = "\n- ".join(sorted(db.get_roles()))
             message = f'''
 --------------------
- Добавить роль
+ Добавить роль   {settings.config["PREFIX"]}get_role 
 --------------------
-{settings.config["PREFIX"]}get_role 
-
-------------------
- Удалить роль
-------------------
-{settings.config["PREFIX"]}delete_role 
-
+ Удалить роль   {settings.config["PREFIX"]}delete_role 
+--------------------
 
 - {roles_lst}
 '''
@@ -126,6 +127,7 @@ async def set_role_message(ctx, argv="")->None:
 async def get_role(ctx, argv="")->None:
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
     db = database(ctx.guild.id)
+    server_roles = []
     if role_name in db.get_roles():
         user_roles = [role.name for role in ctx.message.author.roles if role.name != "@everyone"]
         if role_name in user_roles:
@@ -153,8 +155,11 @@ async def delete_role(ctx)->None:
         await ctx.reply("Эту роль невозможно удалить")
     elif role_name in user_roles:
         #delete role
-        await ctx.author.remove_roles(user_roles[role_name])
-        await ctx.reply(f"{ctx.author.name} удалил роль {role_name}")
+        try:
+            await ctx.author.remove_roles(user_roles[role_name])
+            await ctx.reply(f"{ctx.author.name} удалил роль {role_name}")
+        except:
+            await ctx.reply("При удалении роли произошла ошибка")
     else:
         await ctx.reply("Такая роль не существует или не принадлежит вам")
     db.close()
@@ -308,4 +313,3 @@ async def delete_admin(ctx, user: discord.User)->None:
 if __name__ == "__main__":
     token = settings.config["TOKEN"]
     bot.run(token)
-    
