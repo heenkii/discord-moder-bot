@@ -273,7 +273,7 @@ async def set_notification_channel(ctx)->None:
 
 
 @bot.command(name="delete_notification_channel")
-async def delete_log_channel(ctx)->None:
+async def delete_notification_channel(ctx)->None:
     db = database(ctx.guild.id)
     if ctx.author.id in db.get_admins() or ctx.author.id == int(settings.config["OWNER_ID"]):
         db.delete_notification_channel(ctx.channel.id)
