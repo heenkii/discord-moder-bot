@@ -1,8 +1,8 @@
 import requests as rq
 from bs4 import BeautifulSoup as BS
 
-def get_data()->list:
 
+def get_data()->list:
     data = []
     url = "https://mai.ru/education/schedule/detail.php?group=%D0%9C4%D0%9E-112%D0%91-21"
     html = rq.get(url).text
