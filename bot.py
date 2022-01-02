@@ -371,7 +371,7 @@ async def on_server(ctx):
     else:
         await ctx.send("Сервер уже включен")
 
-@bot.commands(name="off_server")
+@bot.command(name="off_server")
 @filters.is_admin()
 async def off_server(ctx):
     if filters.server_is_active(ctx) == True:
