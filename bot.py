@@ -1,31 +1,35 @@
+import asyncio
 import discord, discord.utils, datetime
 import webparser
 
 from discord.activity import Game
-from sqlighter import database
-from settings import config
-from filters import filters
 from discord.ext import commands, tasks
 from discord.ext.commands import CommandNotFound, CheckFailure
+from sqlighter import database
+from settings import config
+from filters import bot_filters
+from custom_loops import event_loops
 
 
 intents = discord.Intents().all()
 bot = commands.Bot(command_prefix=config["PREFIX"], intents=intents)
 
 
+#error event
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, CommandNotFound): #если это не вызов не существующей функции
         return
 
     if isinstance(error, CheckFailure): #если фильтр возвращает False
-        await ctx.send(":redTick: You don't have permission to kick members.")
         return 
-
+    
+    print("\n\n---------------------------\n")
     print(datetime.datetime.now())
     raise error
 
 
+#auto event
 @bot.event
 async def on_ready()->None:
     bot_game = config["BOT_GAME_NAME"]
@@ -34,44 +38,19 @@ async def on_ready()->None:
     print(datetime.datetime.now())
     print(f"{bot.user} has connected to Discord!")
     print("----------------------------------------")
-    send_schedule.start()
+    event_loops(bot=bot)
 
 
+#auto event
 @bot.event
 async def on_guild_join(guild):
     db = database(guild.id)
     db.close()
 
-#events loop
 
-#send schedule infobez
-@tasks.loop(seconds = 60)
-async def send_schedule()->None:
-    time_now = datetime.datetime.now()
-    if int(time_now.hour) == 8 and int(time_now.minute) == 0:
-        schedule = webparser.get_data()
-        data = schedule[0]
-        date = data[0]["date"].split(".")
-        if int(date[0]) == time_now.day and int(date[1]) == time_now.month:
-            schedule_day = []
-            for unit in data[1:]:
-                lesson = unit["lesson"]
-                tutor = unit["tutor"]
-                time = unit["time"]
-                location = unit["location"]
-                lesson_type = unit["type"]
-                schedule_day += [" ".join([lesson, tutor, time, location, lesson_type])]
-            message = f'Расписание на {data[0]["date"]}, {data[0]["week_day"]}:' + "\n -- " + "\n -- ".join(schedule_day)
-            server_id = 883692688598261791 #infobez id
-            db = database(server_id)
-            notification_channel = db.get_notification_channel()
-            db.close()
-            if notification_channel != None:
-                channel = bot.get_channel(id=notification_channel)
-                await channel.send(message)
-
-
+#auto event
 @bot.event
+@bot_filters.server_is_active()
 async def on_member_join(member)->None:
     server_id = member.guild.id
     db = database(server_id)
@@ -91,7 +70,9 @@ async def on_member_join(member)->None:
     db.close()
 
 
+#auto event
 @bot.event
+@bot_filters.server_is_active()
 async def on_member_remove(member)->None:
     server_id = member.guild.id
     db = database(server_id)
@@ -105,6 +86,7 @@ async def on_member_remove(member)->None:
 
 #user event
 @bot.command(name="get_role")
+@bot_filters.server_and_admin_filter()
 async def get_role(ctx, argv="")->None:
     print("get_role")
     await ctx.message.delete()
@@ -130,6 +112,7 @@ async def get_role(ctx, argv="")->None:
 
 #user event
 @bot.command(name="delete_role")
+@bot_filters.server_and_admin_filter()
 async def delete_role(ctx)->None:
     await ctx.message.delete()
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
@@ -150,8 +133,7 @@ async def delete_role(ctx)->None:
 
 
 @bot.command(name="set_roles_channel")
-@filters.server_is_active()
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def set_roles_channel(ctx, argv="")->None: #в канале создается изменяемое сообщение и обрабатываются только команды добавленя ролей написанные в нем
     await ctx.message.delete()
     server_id = ctx.guild.id
@@ -181,7 +163,7 @@ async def set_roles_channel(ctx, argv="")->None: #в канале создает
 
 #admin command
 @bot.command(name="delete_roles_channel")
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def delete_roles_channel(ctx, argv="")->None:
     db = database()
     message_id = db.get_roles_message()
@@ -204,7 +186,7 @@ async def _update_role_message(ctx, server_id:int)->None:
 
 #admin commands
 @bot.command(name="add_role_for_users")
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def add_role_for_users(ctx)->None:
     await ctx.message.delete()
     db = database(ctx.guild.id)
@@ -226,7 +208,7 @@ async def add_role_for_users(ctx)->None:
 
 #admin event
 @bot.command(name="delete_role_for_users")
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def delete_role_for_users(ctx)->None:
     await ctx.message.delete()
     db = database(ctx.guild.id)
@@ -245,7 +227,7 @@ async def delete_role_for_users(ctx)->None:
 
 #admin event
 @bot.command(name="add_default_role")
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def add_default_role(ctx)->None:
     await ctx.message.delete()
     db = database(ctx.guild.id)
@@ -264,7 +246,7 @@ async def add_default_role(ctx)->None:
 
 #admin event
 @bot.command(name="delete_default_role")
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def delete_default_role(ctx)->None:
     await ctx.message.delete()
     db = database(ctx.guild.id)
@@ -283,7 +265,7 @@ async def delete_default_role(ctx)->None:
 
 #admin_event
 @bot.command(name="set_log_channel")
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def set_log_channel(ctx)->None:
     await ctx.message.delete()
     db = database(ctx.guild.id)
@@ -293,7 +275,7 @@ async def set_log_channel(ctx)->None:
 
 #admin event
 @bot.command(name="delete_log_channel")
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def delete_log_channel(ctx)->None:
     db = database(ctx.guild.id)
     if ctx.author.id in db.get_admins() or ctx.author.id == int(config["OWNER_ID"]):
@@ -309,7 +291,7 @@ async def delete_log_channel(ctx)->None:
 
 #admin event
 @bot.command(name="set_notification_channel")
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def set_notification_channel(ctx)->None:
     db = database(ctx.guild.id)
     if ctx.author.id in db.get_admins() or ctx.author.id == int(config["OWNER_ID"]):
@@ -320,7 +302,7 @@ async def set_notification_channel(ctx)->None:
 
 #admin event
 @bot.command(name="delete_notification_channel")
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def delete_notification_channel(ctx)->None:
     db = database(ctx.guild.id)
     await ctx.message.delete()
@@ -332,7 +314,7 @@ async def delete_notification_channel(ctx)->None:
 
 #admin event
 @bot.command(name="add_admin")
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def add_admin(ctx, user: discord.User)->None:
     try:
         await ctx.message.delete()
@@ -346,7 +328,7 @@ async def add_admin(ctx, user: discord.User)->None:
     
 #admin event
 @bot.command(name="delete_admin")
-@filters.is_admin()
+@bot_filters.server_and_admin_filter()
 async def delete_admin(ctx, user: discord.User)->None:
     db = database(ctx.guild.id)
     await ctx.message.delete()
@@ -362,22 +344,32 @@ async def delete_admin(ctx, user: discord.User)->None:
 
 
 @bot.command(name="on_server")
-@filters.is_admin()
+@bot_filters.is_admin()
 async def on_server(ctx):
-    if filters.server_is_active(ctx) == False:
+    await ctx.message.delete()
+    if bot_filters.server_is_active_predicate(ctx) == False:
         server_id = ctx.guild.id
         db = database(server_id)
-        
+        if db.on_server() == True:
+            await ctx.send("Сервер включен")
+        else:
+            await ctx.send("Ошибка включения сервера")
+        db.close()
     else:
         await ctx.send("Сервер уже включен")
 
 @bot.command(name="off_server")
-@filters.is_admin()
+@bot_filters.is_admin()
 async def off_server(ctx):
-    if filters.server_is_active(ctx) == True:
+    await ctx.message.delete()
+    if bot_filters.server_is_active_predicate(ctx) == True:
         server_id = ctx.guild.id
         db = database(server_id)
-
+        if db.off_server() == True:
+            await ctx.send("Сервер выключен")
+        else:
+            await ctx.send("Ошибка выключения сервера")
+        db.close()
     else:
         await ctx.send("Сервер уже выключен")
 

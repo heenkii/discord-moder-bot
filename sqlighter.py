@@ -12,7 +12,6 @@ class database:
         self.table = f"server_{server_id}"
         self.server_id = server_id
         
-        
         self.sql.execute(f"""CREATE TABLE IF NOT EXISTS {self.table} (
             admins INT,
             log_channel INT,
@@ -22,8 +21,9 @@ class database:
             get_roles_channel INT,
             role_message_id INT,
             roles_channel INT,
-            server_state INT DEFAULT 0);
+            server_state INT);
         """)
+
 
     def get_values(self, tab)->list:
         values = [val[0] for val in self.sql.execute(f"SELECT {tab} FROM {self.table}") if val[0] != None]
@@ -36,33 +36,45 @@ class database:
         ans = [int(server_id[0].split("_")[1]) for server_id in ans]
         return ans
 
-    
+
+    #server_state
     def on_server(self)->bool:
         try:
-            if self.get_server_state() == False:
-                if self.get_log_channel() != None:
-                    self.delete_log_channel()
-                self.sql.execute(f"INSERT INTO {self.table} (server_state) VALUES (0)")
+            ans = self.get_server_state() 
+            if ans == False:
+                self.sql.execute(f"UPDATE {self.table} SET server_state = 1 WHERE server_state = 0")
                 self.db.commit()
-            return True
-        except:
-            return False
-
-    def off_server(self)->bool:
-        pass
-
-    def get_server_state(self)->bool:
-        try:
-            state = self.get_values("server_state")
-            if state == 1:
                 return True
             return False
         except:
             return False
+
+    def off_server(self)->bool:
+        try:
+            if self.get_server_state() == True:
+                self.sql.execute(f"UPDATE {self.table} SET server_state = 0 WHERE server_state = 1")
+                self.db.commit()
+                return True
+            return False
+        except:
+            return False
+
+    def get_server_state(self)->bool:
+        try:
+            state = self.get_values("server_state")
+            if len(state) == 0:
+                self.sql.execute(f"INSERT INTO {self.table} (server_state) VALUES (1)")
+                self.db.commit()
+                return True
+            else:
+                if state[0] == 1:
+                    return True
+                return False
+        except:
+            return False
             
 
-
-    #admin
+    #admins
     def add_admin(self, user_id:int)->bool:
         try:
             if int(user_id) not in self.get_admins():
@@ -85,7 +97,7 @@ class database:
         return self.get_values("admins")
 
 
-    #add log channel
+    #log_channel
     def add_log_channel(self, channel_id:int)->bool:
         try:
             if self.get_log_channel() != None:
@@ -113,6 +125,7 @@ class database:
         return None
 
     
+    #notification_channel
     def add_notification_channel(self, channel_id:int)->bool:
         try:
             if self.get_notification_channel() != None:
@@ -139,7 +152,8 @@ class database:
             return int(channels[0])
         return None
 
-
+    
+    #roles_message
     def add_roles_message(self, message_id:int)->bool:
         try:
             if self.get_role_message() != None:
@@ -156,13 +170,14 @@ class database:
             self.sql.execute(f"DELETE FROM {self.table} WHERE role_message_id = {channel_id}")
             self.db.commit()
 
-    def get_roles_message(self):
+    def get_roles_message(self)->int:
         message_id = self.get_values("roles_message_id")
         if len(message_id) == 1:
             return message_id[0]
         return None
 
-
+    
+    #server_roles
     def add_role(self, role_name:str)->bool:
         try:
             if role_name not in self.get_roles():
@@ -184,7 +199,8 @@ class database:
     def get_roles(self)->int:
         return self.get_values("roles")
 
-
+    
+    #default roles
     def add_default_role(self, role_name)->bool:
         try:
             if role_name not in self.get_default_roles():
