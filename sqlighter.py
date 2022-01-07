@@ -18,15 +18,15 @@ class database:
             notification_channel INT,
             default_roles TEXT,
             roles TEXT,
-            get_roles_channel INT,
-            role_message_id INT,
-            roles_channel INT,
+            roles_message_channel INT,
+            roles_message_id INT,
             server_state INT);
         """)
 
 
-    def get_values(self, tab)->list:
-        values = [val[0] for val in self.sql.execute(f"SELECT {tab} FROM {self.table}") if val[0] != None]
+    def get_values(self, column_name)->list:
+        ans = self.sql.execute(f"SELECT {column_name} FROM {self.table} WHERE {column_name} IS NOT NULL")
+        values = list(map(lambda val: val[0], ans))
         return values
 
 
@@ -38,85 +38,56 @@ class database:
 
 
     #server_state
-    def on_server(self)->bool:
-        try:
-            ans = self.get_server_state() 
-            if ans == False:
-                self.sql.execute(f"UPDATE {self.table} SET server_state = 1 WHERE server_state = 0")
-                self.db.commit()
-                return True
-            return False
-        except:
-            return False
+    def on_server(self)->None:
+        ans = self.get_server_state() 
+        if ans == False:
+            self.sql.execute(f"UPDATE {self.table} SET server_state = 1 WHERE server_state = 0")
+            self.db.commit()
 
-    def off_server(self)->bool:
-        try:
-            if self.get_server_state() == True:
-                self.sql.execute(f"UPDATE {self.table} SET server_state = 0 WHERE server_state = 1")
-                self.db.commit()
-                return True
-            return False
-        except:
-            return False
+    def off_server(self)->None:
+        if self.get_server_state() == True:
+            self.sql.execute(f"UPDATE {self.table} SET server_state = 0 WHERE server_state = 1")
+            self.db.commit()
 
     def get_server_state(self)->bool:
-        try:
-            state = self.get_values("server_state")
-            if len(state) == 0:
-                self.sql.execute(f"INSERT INTO {self.table} (server_state) VALUES (1)")
-                self.db.commit()
+        state = self.get_values("server_state")
+        if len(state) == 0:
+            self.sql.execute(f"INSERT INTO {self.table} (server_state) VALUES (1)")
+            self.db.commit()
+            return True
+        else:
+            if state[0] == 1:
                 return True
-            else:
-                if state[0] == 1:
-                    return True
-                return False
-        except:
             return False
             
 
     #admins
-    def add_admin(self, user_id:int)->bool:
-        try:
-            if int(user_id) not in self.get_admins():
-                self.sql.execute(f"INSERT INTO {self.table} (admins) VALUES {user_id}")
-                self.db.commit()
-            return True
-        except:
-            return False
+    def add_admin(self, user_id:int)->None:
+        if int(user_id) not in self.get_admins():
+            self.sql.execute(f"INSERT INTO {self.table} (admins) VALUES ({user_id})")
+            self.db.commit()
 
-    def delete_admin(self, user_id:int)->bool:
-        try:
-            if int(user_id) in self.get_admins():
-                self.sql.execute(f"DELETE FROM {self.table} WHERE admins = {user_id}")
-                self.db.commit()
-            return True
-        except:
-            return False
+    def delete_admin(self, user_id:int)->None:
+        if int(user_id) in self.get_admins():
+            self.sql.execute(f"DELETE FROM {self.table} WHERE admins = {user_id}")
+            self.db.commit()
 
     def get_admins(self)->list:
         return self.get_values("admins")
 
 
     #log_channel
-    def add_log_channel(self, channel_id:int)->bool:
-        try:
-            if self.get_log_channel() != None:
-                self.delete_log_channel()
-            self.sql.execute(f"INSERT INTO {self.table} (log_channel) VALUES ({channel_id})")
-            self.db.commit()
-            return True
-        except:
-            return False
+    def add_log_channel(self, channel_id:int)->None:
+        if self.get_log_channel() != None:
+            self.delete_log_channel()
+        self.sql.execute(f"INSERT INTO {self.table} (log_channel) VALUES ({channel_id})")
+        self.db.commit()
 
-    def delete_log_channel(self)->bool:
-        try:
-            channel_id = self.get_log_channel()
-            if channel_id != None:
-                self.sql.execute(f"DELETE FROM {self.table} WHERE log_channel = {channel_id}")
-                self.db.commit()
-            return True
-        except:
-            return False
+    def delete_log_channel(self)->None:
+        channel_id = self.get_log_channel()
+        if channel_id != None:
+            self.sql.execute(f"DELETE FROM {self.table} WHERE log_channel = {channel_id}")
+            self.db.commit()
 
     def get_log_channel(self)->int:
         channels = self.get_values("log_channel")
@@ -126,25 +97,17 @@ class database:
 
     
     #notification_channel
-    def add_notification_channel(self, channel_id:int)->bool:
-        try:
-            if self.get_notification_channel() != None:
-                self.delete_notification_channel()
-            self.sql.execute(f"INSERT INTO {self.table} (notification_channel) VALUES {channel_id}")
-            self.db.commit()
-            return True
-        except:
-            return False
+    def add_notification_channel(self, channel_id:int)->None:
+        if self.get_notification_channel() != None:
+            self.delete_notification_channel()
+        self.sql.execute(f"INSERT INTO {self.table} (notification_channel) VALUES ({channel_id})")
+        self.db.commit()
 
-    def delete_notification_channel(self)->bool:
-        try:
-            channel_id = self.get_notification_channel()
-            if channel_id != None:
-                self.sql.execute(f"DELETE FROM {self.table} WHERE notification_channel = {channel_id}")
-                self.db.commit()
-            return True
-        except:
-            return False
+    def delete_notification_channel(self)->None:
+        channel_id = self.get_notification_channel()
+        if channel_id != None:
+            self.sql.execute(f"DELETE FROM {self.table} WHERE notification_channel = {channel_id}")
+            self.db.commit()
 
     def get_notification_channel(self)->int:
         channels = self.get_values("notification_channel")
@@ -152,22 +115,38 @@ class database:
             return int(channels[0])
         return None
 
+
+    #roles channel
+    def add_roles_channel(self, channel_id:int)->None:
+        if self.get_roles_channel() != None:
+            self.delete_roles_channel()
+        self.sql.execute(f"INSERT INTO {self.table} (roles_message_channel) VALUES ({channel_id})")
+        self.db.commit()
+        
+    def delete_roles_channel(self)->None:
+        channel_id = self.get_roles_channel()
+        if channel_id != None:
+            self.sql.execute(f"DELETE FROM {self.table} WHERE roles_message_channel = {channel_id}")
+            self.db.commit()
+
+    def get_roles_channel(self)->int:
+        channel_id = self.get_values("roles_message_channel")
+        if len(channel_id) == 1:
+            return channel_id[0]
+        return None
+
     
     #roles_message
-    def add_roles_message(self, message_id:int)->bool:
-        try:
-            if self.get_role_message() != None:
-                self.delete_roles_message()
-            self.sql.execute(f"INSERT INTO {self.table} (role_message_id) VALUES {message_id}")
-            self.sql.commit()
-            return True
-        except:
-            return False
+    def add_roles_message(self, message_id:int)->None:
+        if self.get_roles_message() != None:
+            self.delete_roles_message()
+        self.sql.execute(f"INSERT INTO {self.table} (roles_message_id) VALUES ({message_id})")
+        self.db.commit()
 
-    def delete_roles_message(self, channel_id):
-        roles_message = self.get_roles_message()
-        if roles_message != None:
-            self.sql.execute(f"DELETE FROM {self.table} WHERE role_message_id = {channel_id}")
+    def delete_roles_message(self)->None:
+        message_id = self.get_roles_message()
+        if message_id != None:
+            self.sql.execute(f"DELETE FROM {self.table} WHERE roles_message_id = {message_id}")
             self.db.commit()
 
     def get_roles_message(self)->int:
@@ -178,46 +157,30 @@ class database:
 
     
     #server_roles
-    def add_role(self, role_name:str)->bool:
-        try:
-            if role_name not in self.get_roles():
-                self.sql.execute(f"INSERT INTO {self.table} (roles) VALUES {role_name}")
-                self.db.commit()
-            return True
-        except:
-            return False
+    def add_role(self, role_name:str)->None:
+        if role_name not in self.get_roles():
+            self.sql.execute(f"INSERT INTO {self.table} (roles) VALUES (?)", (role_name,))
+            self.db.commit()
 
-    def delete_role(self, role_name:str)->bool:
-        try:
-            if role_name in self.get_roles():
-                self.sql.execute(f"DELETE FROM {self.table} WHERE roles = {role_name}")
-                self.db.commit()
-            return True
-        except:
-            return False
+    def delete_role(self, role_name:str)->None:
+        if role_name in self.get_roles():
+            self.sql.execute(f"DELETE FROM {self.table} WHERE roles = (?)", (role_name,))
+            self.db.commit()
 
     def get_roles(self)->int:
         return self.get_values("roles")
 
     
     #default roles
-    def add_default_role(self, role_name)->bool:
-        try:
-            if role_name not in self.get_default_roles():
-                self.sql.execute(f"INSERT INTO {self.table} (default_roles) VALUES (?)", (role_name, ))
-                self.db.commit()
-            return True
-        except:
-            return False
+    def add_default_role(self, role_name)->None:
+        if role_name not in self.get_default_roles():
+            self.sql.execute(f"INSERT INTO {self.table} (default_roles) VALUES (?)", (role_name, ))
+            self.db.commit()
 
-    def delete_default_role(self, role_name)->bool:
-        try:
-            if role_name in self.get_default_roles():
-                self.sql.execute(f"DELETE FROM {self.table} WHERE default_roles = ?", (role_name, ))
-                self.db.commit()
-            return True
-        except:
-            return False
+    def delete_default_role(self, role_name)->None:
+        if role_name in self.get_default_roles():
+            self.sql.execute(f"DELETE FROM {self.table} WHERE default_roles = ?", (role_name, ))
+            self.db.commit()
 
     def get_default_roles(self)->list:
         return self.get_values("default_roles")

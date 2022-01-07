@@ -3,8 +3,7 @@ from filters import filters
 from sqlighter import database
 from datetime import datetime
 from filters import bot_filters
-
-import webparser
+from webparser import get_schedule
 
 
 class event_loops(commands.Cog):
@@ -13,18 +12,19 @@ class event_loops(commands.Cog):
         self.bot = bot
         self.send_schedule.start()
 
+    def check_time(self, hour:int, minute:int):
+        pass
     
     @tasks.loop(seconds = 60)
     async def send_schedule(self)->None:
         time_now = datetime.now()
-        print(time_now)
         time_is_correct = int(time_now.hour) == 8 and int(time_now.minute) == 0
         server_id = 883692688598261791 #infobez id
         server_is_active = filters.server_is_active(server_id)
         db = database(server_id)
         notification_channel = db.get_notification_channel()
         if time_is_correct and server_is_active and notification_channel != None:
-            schedule = webparser.get_data()
+            schedule = get_schedule()
             if len(schedule) > 0:
                 data = schedule[0]
                 date = data[0]["date"].split(".")

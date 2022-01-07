@@ -1,13 +1,11 @@
-import asyncio
 import discord, discord.utils, datetime
-import webparser
 
 from discord.activity import Game
 from discord.ext import commands, tasks
 from discord.ext.commands import CommandNotFound, CheckFailure
 from sqlighter import database
 from settings import config
-from filters import bot_filters
+from bot_tools import bot_filters, bot_functions
 from custom_loops import event_loops
 
 
@@ -24,7 +22,7 @@ async def on_command_error(ctx, error):
     if isinstance(error, CheckFailure): #если фильтр возвращает False
         return 
     
-    print("\n\n---------------------------\n")
+    print("\n---------------------------")
     print(datetime.datetime.now())
     raise error
 
@@ -34,10 +32,10 @@ async def on_command_error(ctx, error):
 async def on_ready()->None:
     bot_game = config["BOT_GAME_NAME"]
     await bot.change_presence(activity=discord.Game(name=bot_game))
-    print("----------------------------------------")
+    print("\n----------------------------------------")
     print(datetime.datetime.now())
     print(f"{bot.user} has connected to Discord!")
-    print("----------------------------------------")
+    print("----------------------------------------\n")
     event_loops(bot=bot)
 
 
@@ -86,11 +84,13 @@ async def on_member_remove(member)->None:
 
 #user event
 @bot.command(name="get_role")
-@bot_filters.server_and_admin_filter()
-async def get_role(ctx, argv="")->None:
-    print("get_role")
-    await ctx.message.delete()
-    role_name = ctx.message.content.split(maxsplit=1)[1].strip()
+@bot_filters.server_is_active()
+async def get_role(ctx)->None:
+    role_name = ctx.message.content.split(maxsplit=1)
+    if len(role_name) > 1:
+        role_name = role_name[1].strip()
+    else:
+        role_name = " "
     db = database(ctx.guild.id)
     server_roles = []
     if role_name in db.get_roles():
@@ -104,6 +104,7 @@ async def get_role(ctx, argv="")->None:
                 await ctx.reply(f"{ctx.author.name} добавил роль {role_name}")
             except:
                 await ctx.reply("При добавлении роли произошла ошибка")
+    
     elif role_name in db.get_default_roles():
         await ctx.reply("Это дефолтная роль")
     else:
@@ -112,11 +113,12 @@ async def get_role(ctx, argv="")->None:
 
 #user event
 @bot.command(name="delete_role")
-@bot_filters.server_and_admin_filter()
+@bot_filters.server_is_active()
 async def delete_role(ctx)->None:
     await ctx.message.delete()
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
-    db = database(ctx.guild.id)
+    server_id = ctx.guild.id
+    db = database(server_id=server_id)
     user_roles = {role.name:role for role in ctx.message.author.roles if role.name != "@everyone"}
     if role_name in db.get_default_roles() or role_name not in db.get_roles():
         await ctx.reply("Эту роль невозможно удалить")
@@ -132,12 +134,12 @@ async def delete_role(ctx)->None:
     db.close()
 
 
-@bot.command(name="set_roles_channel")
+@bot.command(name="set_roles_message")
 @bot_filters.server_and_admin_filter()
-async def set_roles_channel(ctx, argv="")->None: #в канале создается изменяемое сообщение и обрабатываются только команды добавленя ролей написанные в нем
+async def set_roles_message(ctx)->None: #в канале создается изменяемое сообщение и обрабатываются только команды добавленя ролей написанные в нем
     await ctx.message.delete()
     server_id = ctx.guild.id
-    db = database(server_id)
+    db = database(server_id=server_id)
     channel = bot.get_channel(id=ctx.message.channel.id)
     roles = db.get_roles()
     if roles != []:
@@ -160,29 +162,30 @@ async def set_roles_channel(ctx, argv="")->None: #в канале создает
     db.add_roles_message(message_id)
     db.close()
 
-
 #admin command
-@bot.command(name="delete_roles_channel")
+@bot.command(name="delete_roles_message")
 @bot_filters.server_and_admin_filter()
-async def delete_roles_channel(ctx, argv="")->None:
-    db = database()
+async def delete_roles_message(ctx)->None:
+    server_id = ctx.guild.id
+    db = database(server_id=server_id)
     message_id = db.get_roles_message()
     if message_id != None:
-        roles_message = await ctx.fetch_message()
-        print(roles_message.text)
+        pass
     db.close()
 
 
-#edit role message
-async def _update_role_message(ctx, server_id:int)->None:
-    db = database(server_id)
+#chack role message
+async def check_role_massage_in_channel(ctx)->bool:
     try:
-        roles_message_id = db.get_roles_message()
-        server_roles = [role.name for role in ctx.guild.roles if role.name != "@everyone"]
-    except:
         pass
-    
+    except:
+        return False
 
+
+#edit role message
+async def update_role_message(ctx)->None:
+
+    
 
 #admin commands
 @bot.command(name="add_role_for_users")
@@ -194,12 +197,10 @@ async def add_role_for_users(ctx)->None:
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
     if role_name not in db.get_roles() and role_name in server_roles:
         if role_name in db.get_default_roles():
-            if not db.delete_default_role(role_name):
-                await ctx.send("Ошибка при удалении дефолтной роли")
-        if db.add_role(role_name):
-            await ctx.send(f"Добавлена роль {role_name}")
-        else:
-            await ctx.send("Ошибка при добавлении роли")
+            db.delete_default_role(role_name)
+        await ctx.send(f"Добавлена роль {role_name}")
+        db.add_role(role_name=role_name)
+        await update_role_message(ctx)
     elif role_name in db.get_roles():
         await ctx.send("Роль уже была добавлена")
     else:
@@ -217,12 +218,12 @@ async def delete_role_for_users(ctx)->None:
     if role_name in db.get_roles() and role_name in server_roles:
         db.delete_role(role_name)
         await ctx.send(f"Удалена роль {role_name}")
-    if role_name not in db.get_roles():
+        await update_role_message(ctx)
+    elif role_name not in db.get_roles():
         await ctx.send("Роль и так не добавлена")
     else:
         await ctx.send("Такой роли на сервере нет")
     db.close()
-
 
 
 #admin event
@@ -236,6 +237,7 @@ async def add_default_role(ctx)->None:
     if role_name not in db.get_default_roles() and role_name in server_roles:
         if role_name in db.get_roles():
             db.delete_role(role_name)
+            await update_role_message(ctx)
         db.add_default_role(role_name)
         await ctx.send(f"Добавлена базовая роль {role_name}")
     elif role_name in db.get_default_roles():
@@ -262,7 +264,6 @@ async def delete_default_role(ctx)->None:
     db.close()
 
 
-
 #admin_event
 @bot.command(name="set_log_channel")
 @bot_filters.server_and_admin_filter()
@@ -279,14 +280,10 @@ async def set_log_channel(ctx)->None:
 async def delete_log_channel(ctx)->None:
     db = database(ctx.guild.id)
     if ctx.author.id in db.get_admins() or ctx.author.id == int(config["OWNER_ID"]):
-        try:
-            await ctx.message.delete()
-            db.delete_log_channel()
-            await ctx.send("Log канал удален")
-        except:
-            await ctx.send("Ошибка удаления log канала")
+        await ctx.message.delete()
+        db.delete_log_channel()
+        await ctx.send("Log канал удален")
     db.close()
-
 
 
 #admin event
@@ -309,7 +306,6 @@ async def delete_notification_channel(ctx)->None:
     db.delete_notification_channel(ctx.channel.id)
     await ctx.send("Канал для уведомлений удален")
     db.close()
-
 
 
 #admin event
@@ -350,10 +346,7 @@ async def on_server(ctx):
     if bot_filters.server_is_active_predicate(ctx) == False:
         server_id = ctx.guild.id
         db = database(server_id)
-        if db.on_server() == True:
-            await ctx.send("Сервер включен")
-        else:
-            await ctx.send("Ошибка включения сервера")
+        await ctx.send("Сервер включен")
         db.close()
     else:
         await ctx.send("Сервер уже включен")
@@ -365,10 +358,7 @@ async def off_server(ctx):
     if bot_filters.server_is_active_predicate(ctx) == True:
         server_id = ctx.guild.id
         db = database(server_id)
-        if db.off_server() == True:
-            await ctx.send("Сервер выключен")
-        else:
-            await ctx.send("Ошибка выключения сервера")
+        await ctx.send("Сервер выключен")
         db.close()
     else:
         await ctx.send("Сервер уже выключен")
