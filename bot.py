@@ -1,8 +1,9 @@
-import discord, discord.utils, datetime
+import discord, discord.utils
 
 from discord.activity import Game
 from discord.ext import commands, tasks
 from discord.ext.commands import CommandNotFound, CheckFailure
+from datetime import datetime
 from sqlighter import database
 from settings import config
 from bot_tools import bot_filters, bot_functions
@@ -23,7 +24,7 @@ async def on_command_error(ctx, error):
         return 
     
     print("\n---------------------------")
-    print(datetime.datetime.now())
+    print(datetime.now())
     raise error
 
 
@@ -174,19 +175,6 @@ async def delete_roles_message(ctx)->None:
     db.close()
 
 
-#chack role message
-async def check_role_massage_in_channel(ctx)->bool:
-    try:
-        pass
-    except:
-        return False
-
-
-#edit role message
-async def update_role_message(ctx)->None:
-
-    
-
 #admin commands
 @bot.command(name="add_role_for_users")
 @bot_filters.server_and_admin_filter()
@@ -200,7 +188,7 @@ async def add_role_for_users(ctx)->None:
             db.delete_default_role(role_name)
         await ctx.send(f"Добавлена роль {role_name}")
         db.add_role(role_name=role_name)
-        await update_role_message(ctx)
+        await bot_functions.update_role_message(bot=bot, ctx=ctx)
     elif role_name in db.get_roles():
         await ctx.send("Роль уже была добавлена")
     else:
@@ -218,7 +206,7 @@ async def delete_role_for_users(ctx)->None:
     if role_name in db.get_roles() and role_name in server_roles:
         db.delete_role(role_name)
         await ctx.send(f"Удалена роль {role_name}")
-        await update_role_message(ctx)
+        await bot_functions.update_role_message(bot=bot, ctx=ctx)
     elif role_name not in db.get_roles():
         await ctx.send("Роль и так не добавлена")
     else:
@@ -237,7 +225,7 @@ async def add_default_role(ctx)->None:
     if role_name not in db.get_default_roles() and role_name in server_roles:
         if role_name in db.get_roles():
             db.delete_role(role_name)
-            await update_role_message(ctx)
+            await bot_functions.update_role_message(bot=bot, ctx=ctx)
         db.add_default_role(role_name)
         await ctx.send(f"Добавлена базовая роль {role_name}")
     elif role_name in db.get_default_roles():

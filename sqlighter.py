@@ -1,5 +1,7 @@
 import sqlite3
 
+from discord import message
+from bot import delete_admin
 from settings import config
 
 
@@ -116,23 +118,32 @@ class database:
         return None
 
 
-    #roles channel
-    def add_roles_channel(self, channel_id:int)->None:
-        if self.get_roles_channel() != None:
-            self.delete_roles_channel()
+    def add_roles_data(self, channel_id, message_id)->None:
+        if self.get_roles_channel() != None or self.get_roles_message() != None:
+            self.delete_roles_data()
         self.sql.execute(f"INSERT INTO {self.table} (roles_message_channel) VALUES ({channel_id})")
+        self.sql.execute(f"INSERT INTO {self.table} (roles_message_id) VALUES ({message_id})")
         self.db.commit()
         
-    def delete_roles_channel(self)->None:
+    def delete_roles_data(self)->None:
         channel_id = self.get_roles_channel()
+        message_id = self.get_roles_message()
         if channel_id != None:
             self.sql.execute(f"DELETE FROM {self.table} WHERE roles_message_channel = {channel_id}")
-            self.db.commit()
+        if message_id != None:
+            self.sql.execute(f"DELETE FROM {self.table} WHERE roles_message_id = {message_id}")
+        self.db.commit()
 
     def get_roles_channel(self)->int:
         channel_id = self.get_values("roles_message_channel")
         if len(channel_id) == 1:
             return channel_id[0]
+        return None
+
+    def get_roles_message(self)->int:
+        message_id = self.get_values("roles_message_id")
+        if len(message_id) == 1:
+            return message_id[0]
         return None
 
     

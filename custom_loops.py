@@ -1,8 +1,8 @@
 from discord.ext import tasks, commands
-from filters import filters
+from bot_tools import filters
 from sqlighter import database
 from datetime import datetime
-from filters import bot_filters
+from bot_tools import bot_filters
 from webparser import get_schedule
 
 
@@ -13,7 +13,9 @@ class event_loops(commands.Cog):
         self.send_schedule.start()
 
     def check_time(self, hour:int, minute:int):
-        pass
+        time_now = datetime.now()
+        time_is_correct = int(time_now.hour) == hour and int(time_now.minute) == minute
+        return time_is_correct
     
     @tasks.loop(seconds = 60)
     async def send_schedule(self)->None:
