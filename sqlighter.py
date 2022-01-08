@@ -1,7 +1,6 @@
 import sqlite3
 
 from discord import message
-from bot import delete_admin
 from settings import config
 
 

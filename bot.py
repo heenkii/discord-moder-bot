@@ -34,7 +34,7 @@ async def on_ready()->None:
     bot_game = config["BOT_GAME_NAME"]
     await bot.change_presence(activity=discord.Game(name=bot_game))
     print("\n----------------------------------------")
-    print(datetime.datetime.now())
+    print(datetime.now())
     print(f"{bot.user} has connected to Discord!")
     print("----------------------------------------\n")
     event_loops(bot=bot)
@@ -141,11 +141,12 @@ async def delete_role(ctx)->None:
 async def set_roles_message(ctx)->None: #в канале создается изменяемое сообщение и обрабатываются только команды добавленя ролей написанные в нем
     await ctx.message.delete()
     server_id = ctx.guild.id
+    channel_id = ctx.channel.id
     db = database(server_id=server_id)
-    channel = bot.get_channel(id=ctx.message.channel.id)
+    channel = bot.get_channel(id=channel_id)
     roles = db.get_roles()
     if roles != []:
-        roles_lst = "\n- ".join(sorted(db.get_roles()))
+        roles_lst = "\n- ".join(sorted(roles))
         text_message = f'''
 --------------------
  Добавить роль   {config["PREFIX"]}get_role 
@@ -161,7 +162,7 @@ async def set_roles_message(ctx)->None: #в канале создается из
 {config["PREFIX"]}get_role [role_name] - добавить роль"""
     message = await ctx.send(text_message)
     message_id = message.id
-    db.add_roles_message(message_id)
+    db.add_roles_data(message_id=message_id, channel_id=channel_id)
     db.close()
 
 #admin command
@@ -172,8 +173,14 @@ async def delete_roles_message(ctx)->None:
     db = database(server_id=server_id)
     message_id = db.get_roles_message()
     if message_id != None:
-        pass
+        db.delete_roles_data()
     db.close()
+
+@bot.command(name="update_roles_message")
+@bot_filters.server_and_admin_filter()
+async def update_roles_message(ctx)->None:
+    await ctx.message.delete()
+    await bot_functions.update_roles_message(bot=bot, ctx=ctx)
 
 
 #admin commands
@@ -181,7 +188,8 @@ async def delete_roles_message(ctx)->None:
 @bot_filters.server_and_admin_filter()
 async def add_role_for_users(ctx)->None:
     await ctx.message.delete()
-    db = database(ctx.guild.id)
+    server_id = ctx.guild.id
+    db = database(server_id=server_id)
     server_roles = [role.name for role in ctx.guild.roles if role.name != "@everyone"]
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
     if role_name not in db.get_roles() and role_name in server_roles:
@@ -189,7 +197,7 @@ async def add_role_for_users(ctx)->None:
             db.delete_default_role(role_name)
         await ctx.send(f"Добавлена роль {role_name}")
         db.add_role(role_name=role_name)
-        await bot_functions.update_role_message(bot=bot, ctx=ctx)
+        await bot_functions.update_roles_message(bot=bot, ctx=ctx)
     elif role_name in db.get_roles():
         await ctx.send("Роль уже была добавлена")
     else:
@@ -201,13 +209,14 @@ async def add_role_for_users(ctx)->None:
 @bot_filters.server_and_admin_filter()
 async def delete_role_for_users(ctx)->None:
     await ctx.message.delete()
-    db = database(ctx.guild.id)
+    server_id = ctx.guild.id
+    db = database(server_id=server_id)
     server_roles = [role.name for role in ctx.guild.roles if role.name != "@everyone"]
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
     if role_name in db.get_roles() and role_name in server_roles:
         db.delete_role(role_name)
         await ctx.send(f"Удалена роль {role_name}")
-        await bot_functions.update_role_message(bot=bot, ctx=ctx)
+        await bot_functions.update_roles_message(bot=bot, ctx=ctx)
     elif role_name not in db.get_roles():
         await ctx.send("Роль и так не добавлена")
     else:
@@ -220,13 +229,14 @@ async def delete_role_for_users(ctx)->None:
 @bot_filters.server_and_admin_filter()
 async def add_default_role(ctx)->None:
     await ctx.message.delete()
-    db = database(ctx.guild.id)
+    server_id = ctx.guild.id
+    db = database(server_id=server_id)
     server_roles = [role.name for role in ctx.guild.roles if role.name != "@everyone"]
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
     if role_name not in db.get_default_roles() and role_name in server_roles:
         if role_name in db.get_roles():
             db.delete_role(role_name)
-            await bot_functions.update_role_message(bot=bot, ctx=ctx)
+            await bot_functions.update_roles_message(bot=bot, ctx=ctx)
         db.add_default_role(role_name)
         await ctx.send(f"Добавлена базовая роль {role_name}")
     elif role_name in db.get_default_roles():
@@ -240,7 +250,8 @@ async def add_default_role(ctx)->None:
 @bot_filters.server_and_admin_filter()
 async def delete_default_role(ctx)->None:
     await ctx.message.delete()
-    db = database(ctx.guild.id)
+    server_id = ctx.guild.id
+    db = database(server_id=server_id)
     server_roles = [role.name for role in ctx.guild.roles if role.name != "@everyone"]
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
     if role_name in db.get_default_roles() and role_name in server_roles:
@@ -258,7 +269,8 @@ async def delete_default_role(ctx)->None:
 @bot_filters.server_and_admin_filter()
 async def set_log_channel(ctx)->None:
     await ctx.message.delete()
-    db = database(ctx.guild.id)
+    server_id = ctx.guild.id
+    db = database(server_id=server_id)
     db.add_log_channel(ctx.channel.id)
     await ctx.send("Log канал установлен")
     db.close()
@@ -267,11 +279,11 @@ async def set_log_channel(ctx)->None:
 @bot.command(name="delete_log_channel")
 @bot_filters.server_and_admin_filter()
 async def delete_log_channel(ctx)->None:
-    db = database(ctx.guild.id)
-    if ctx.author.id in db.get_admins() or ctx.author.id == int(config["OWNER_ID"]):
-        await ctx.message.delete()
-        db.delete_log_channel()
-        await ctx.send("Log канал удален")
+    await ctx.message.delete()
+    server_id = ctx.guild.id
+    db = database(server_id=server_id)
+    db.delete_log_channel()
+    await ctx.send("Log канал удален")
     db.close()
 
 
@@ -279,19 +291,19 @@ async def delete_log_channel(ctx)->None:
 @bot.command(name="set_notification_channel")
 @bot_filters.server_and_admin_filter()
 async def set_notification_channel(ctx)->None:
-    db = database(ctx.guild.id)
-    if ctx.author.id in db.get_admins() or ctx.author.id == int(config["OWNER_ID"]):
-        await ctx.message.delete()
-        db.add_notification_channel(ctx.channel.id)
-        await ctx.send("Канал для уведомлений установлен")
+    await ctx.message.delete()
+    server_id = ctx.guild.id
+    db = database(server_id=server_id)
+    db.add_notification_channel(ctx.channel.id)
+    await ctx.send("Канал для уведомлений установлен")
     db.close()
 
 #admin event
 @bot.command(name="delete_notification_channel")
 @bot_filters.server_and_admin_filter()
 async def delete_notification_channel(ctx)->None:
-    db = database(ctx.guild.id)
     await ctx.message.delete()
+    db = database(ctx.guild.id)
     db.delete_notification_channel(ctx.channel.id)
     await ctx.send("Канал для уведомлений удален")
     db.close()
@@ -303,28 +315,32 @@ async def delete_notification_channel(ctx)->None:
 async def add_admin(ctx, user: discord.User)->None:
     try:
         await ctx.message.delete()
-        db = database(ctx.guild.id)
+        server_id = ctx.guild.id
+        db = database(server_id=server_id)
         if user.id not in db.get_admins():
             db.add_admin(user.id)
             await ctx.send(f"Админ {ctx.author.name} добавлен")
+        else:
+            await ctx.send(f"{ctx.author.name} уже является администратором")
     except:
-        await ctx.send("Ошибка")
+        await ctx.send(f"Ошибка при добавлении админа {ctx.author.name}")
     db.close()
     
 #admin event
 @bot.command(name="delete_admin")
 @bot_filters.server_and_admin_filter()
 async def delete_admin(ctx, user: discord.User)->None:
-    db = database(ctx.guild.id)
-    await ctx.message.delete()
     try:
+        await ctx.message.delete()
+        server_id = ctx.guild.id
+        db = database(server_id=server_id)
         if user.id in db.get_admins():
             db.delete_admin(user.id)
             await ctx.send(f"Админ {ctx.author.name} удален")
         else:
-            await ctx.send(f"Пользователь {ctx.author.name} не является администратором")
+            await ctx.send(f"{ctx.author.name} не является администратором")
     except:
-        await ctx.send("Ошибка при удалении админ доступа пользователя {ctx.author.name}")
+        await ctx.send(f"Ошибка при удалении админа {ctx.author.name}")
     db.close()
 
 

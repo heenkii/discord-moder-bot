@@ -48,26 +48,26 @@ class bot_filters(filters):
 
 
 class bot_functions:
-
-    async def check_roles_message_in_channel(bot, ctx):
-        pass
-
-    async def updata_roles_message(bot, ctx):
+    
+    async def update_roles_message(bot, ctx):
         server_id = ctx.guild.id
         db = database(server_id)
         roles_message_id = db.get_roles_message()
         if roles_message_id != None:
-            db_roles = db.get_roles()
+            roles = db.get_roles()
             server_roles = [role.name for role in ctx.guild.roles if role.name != "@everyone"]
-            for role in db_roles:
+            for role in roles:
                 if role not in server_roles:
                     db.delete_role(role) #delete role if role not in server
             try:
-                channel = bot.get_channel(db.get_roles_channel())
-                message = await channel.fetch_message(roles_message_id)
-                roles_lst = "\n- ".join(sorted(db.get_roles()))
-                if roles_lst != []:
-                    text_message = f'''
+                channel_id = db.get_roles_channel()
+                channel = bot.get_channel(channel_id)
+                if channel != None:
+                    message = await channel.fetch_message(roles_message_id)
+                    if message != None:
+                        roles_lst = "\n- ".join(sorted(roles))
+                        if roles_lst != []:
+                            text_message = f'''
 --------------------
 Добавить роль   {config["PREFIX"]}get_role 
 --------------------
@@ -76,13 +76,13 @@ class bot_functions:
 
 - {roles_lst}
 '''
-                else:
-                    text_message = f"""Доступных ролей нету
+                        else:
+                            text_message = f"""Доступных ролей нету
 --------------------
 {config["PREFIX"]}get_role [role_name] - добавить роль"""
-                await message.edit(content=text_message)
+                        await message.edit(content=text_message)
             except:
-                await ctx.send("Команда введена не в канале с сообщением или сообщения не существует")
+                await ctx.send("Команда введена не в канале с сообщением или сообщение было удалено")
         else:
             await ctx.send("Не установлено сообщение с ролями")
         db.close()
