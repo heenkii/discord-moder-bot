@@ -92,7 +92,8 @@ async def get_role(ctx)->None:
         role_name = role_name[1].strip()
     else:
         role_name = " "
-    db = database(ctx.guild.id)
+    server_id = ctx.guild.id
+    db = database(server_id=server_id)
     server_roles = []
     if role_name in db.get_roles():
         user_roles = [role.name for role in ctx.message.author.roles if role.name != "@everyone"]
