@@ -1,5 +1,5 @@
 config = {
-    "TOKEN" : "NzI3NjkwNDA3NjQ3MTE3MzUz.XvvggQ.IMXWJe8p6Z-eJ12CC_fNCcDZzT4",
+    "TOKEN" : "NzI3NjkwNDA3NjQ3MTE3MzUz.XvvggQ.haJpFfBmHihHClvIm_ewbhsdqIM",
     "PREFIX" : "//",
     "DB_FILE" : "data.db",
     "OWNER_ID" : 435478311309672449,

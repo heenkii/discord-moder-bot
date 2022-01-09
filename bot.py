@@ -161,11 +161,11 @@ async def set_roles_message(ctx)->None: #в канале создается из
 async def delete_roles_message(ctx)->None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
-    db.delete_roles_data()
     channel = bot.get_channel(id=db.get_roles_channel())
     if channel != None:
         message = await channel.fetch_message(db.get_roles_message())
         await message.delete()
+    db.delete_roles_data()
     await ctx.send("Roles message удалено")
     db.close()
 
