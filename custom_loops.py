@@ -12,7 +12,7 @@ class event_loops(commands.Cog):
         self.bot = bot
         self.send_schedule.start()
 
-    def check_time(self, hour:int, minute:int):
+    def check_time(self, hour:int, minute:int)->bool:
         time_now = datetime.now()
         time_is_correct = int(time_now.hour) == hour and int(time_now.minute) == minute
         return time_is_correct
@@ -20,7 +20,7 @@ class event_loops(commands.Cog):
     @tasks.loop(seconds = 60)
     async def send_schedule(self)->None:
         time_now = datetime.now()
-        time_is_correct = int(time_now.hour) == 8 and int(time_now.minute) == 0
+        time_is_correct = self.check_time(hour=8, minute=0)
         server_id = 883692688598261791 #infobez id
         server_is_active = filters.server_is_active(server_id)
         db = database(server_id)

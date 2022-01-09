@@ -48,6 +48,16 @@ class bot_filters(filters):
 
 
 class bot_functions:
+
+    async def get_server_roles(ctx)->list:
+        server_roles = [role.name for role in ctx.guild.roles if role.name != "@everyone"]
+        return server_roles
+    
+    
+    async def get_user_roles(ctx)->list:
+        user_roles = [role.name for role in ctx.message.author.roles if role.name != "@everyone"]
+        return user_roles
+
     
     async def update_roles_message(bot, ctx):
         server_id = ctx.guild.id

@@ -86,12 +86,9 @@ async def on_member_remove(member)->None:
 #user event
 @bot.command(name="get_role")
 @bot_filters.server_is_active()
-async def get_role(ctx)->None:
-    role_name = ctx.message.content.split(maxsplit=1)
-    if len(role_name) > 1:
-        role_name = role_name[1].strip()
-    else:
-        role_name = " "
+async def get_role(ctx, *args)->None:
+    role_name = " ".join(args)
+    print(f" {role_name} ")
     server_id = ctx.guild.id
     db = database(server_id=server_id)
     server_roles = []
@@ -116,7 +113,7 @@ async def get_role(ctx)->None:
 #user event
 @bot.command(name="delete_role")
 @bot_filters.server_is_active()
-async def delete_role(ctx)->None:
+async def delete_role(ctx, ar)->None:
     await ctx.message.delete()
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
     server_id = ctx.guild.id
