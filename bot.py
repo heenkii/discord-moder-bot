@@ -60,13 +60,12 @@ async def on_member_join(member)->None:
                 await member.add_roles(role)
             except:
                 continue
-    date = datetime.datetime.now() #get dete and time
+    date = datetime.datetime.now() #get date and time
     log_channel = db.get_log_channel()
     if log_channel != None:
         channel = bot.get_channel(id=log_channel) #get log channel 
         await channel.send(f"{date.year}.{date.month}.{date.day} {date.hour}:{date.minute} | {member.name} join")
     db.close()
-
 
 #auto event
 @bot.event
@@ -89,7 +88,7 @@ async def get_role(ctx, *args)->None:
     role_name = " ".join(args)
     db = database(server_id=ctx.guild.id)
     if role_name in db.get_roles():
-        user_roles = bot_functions.get_user_roles(ctx=ctx)
+        user_roles = await bot_functions.get_user_roles(ctx=ctx)
         if role_name in user_roles:
             await ctx.reply("Роль уже добавлена")
         else:
@@ -113,7 +112,7 @@ async def delete_role(ctx, *args)->None:
     await ctx.message.delete()
     role_name = " ".join(args)
     db = database(server_id=ctx.guild.id)
-    user_roles = bot_functions.get_user_roles(ctx=ctx)
+    user_roles = await bot_functions.get_user_roles(ctx=ctx)
     if role_name in db.get_default_roles() or role_name not in db.get_roles():
         await ctx.reply("Эту роль невозможно удалить")
     elif role_name in user_roles:
@@ -135,7 +134,7 @@ async def set_roles_message(ctx)->None: #в канале создается из
     db = database(server_id=ctx.guild.id)
     channel = bot.get_channel(id=ctx.channel.id)
     roles_lst = db.get_roles()
-    text_message = bot_functions.get_roles_message_text(roles_lst=roles_lst)
+    text_message = await bot_functions.get_roles_message_text(roles_lst=roles_lst)
     message = await ctx.send(text_message)
     message_id = message.id
     db.add_roles_data(message_id=message_id, channel_id=ctx.channel.id)
@@ -148,9 +147,11 @@ async def delete_roles_message(ctx)->None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
     channel = bot.get_channel(id=db.get_roles_channel())
-    if channel != None:
+    try:
         message = await channel.fetch_message(db.get_roles_message())
         await message.delete()
+    except:
+        await ctx.send("Сообщение не существует")
     db.delete_roles_data()
     await ctx.send("Roles message удалено")
     db.close()
@@ -168,7 +169,7 @@ async def update_roles_message(ctx)->None:
 async def add_role_for_users(ctx)->None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
-    server_roles = bot_functions.get_server_roles(ctx=ctx)
+    server_roles = await bot_functions.get_server_roles(ctx=ctx)
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
     if role_name not in db.get_roles() and role_name in server_roles:
         if role_name in db.get_default_roles():
@@ -188,7 +189,7 @@ async def add_role_for_users(ctx)->None:
 async def delete_role_for_users(ctx)->None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
-    server_roles = bot_functions.get_server_roles(ctx=ctx)
+    server_roles = await bot_functions.get_server_roles(ctx=ctx)
     role_name = ctx.message.content.split(maxsplit=1)[1].strip()
     if role_name in db.get_roles() and role_name in server_roles:
         db.delete_role(role_name)

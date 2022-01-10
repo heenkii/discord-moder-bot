@@ -84,7 +84,7 @@ class bot_functions:
         roles_message_id = db.get_roles_message()
         if roles_message_id != None:
             roles_lst = db.get_roles()
-            server_roles = bot_functions.get_server_roles(ctx=ctx)
+            server_roles = await bot_functions.get_server_roles(ctx=ctx)
             for role in roles_lst:
                 if role not in server_roles:
                     db.delete_role(role) #delete role if role not in server
@@ -94,7 +94,7 @@ class bot_functions:
                 if channel != None:
                     message = await channel.fetch_message(roles_message_id)
                     if message != None:
-                        text_message = bot_functions.get_roles_message_text(roles_lst=roles_lst)
+                        text_message = await bot_functions.get_roles_message_text(roles_lst=roles_lst)
                         await message.edit(content=text_message)
             except:
                 await ctx.send("Команда введена не в канале с сообщением или сообщение было удалено")
