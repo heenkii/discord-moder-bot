@@ -117,7 +117,6 @@ async def delete_role(ctx, *args)->None:
     if role_name in db.get_default_roles() or role_name not in db.get_roles():
         await ctx.reply("Эту роль невозможно удалить")
     elif role_name in user_roles:
-        #delete role
         try:
             role = discord.utils.get(ctx.guild.roles, name=role_name)
             await ctx.author.remove_roles(user_roles[role_name])
