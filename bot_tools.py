@@ -49,6 +49,25 @@ class bot_filters(filters):
 
 class bot_functions:
 
+    async def get_roles_message_text(roles_lst):
+        if len(roles_lst) != []:
+            roles_lst = "\n- ".join(sorted(roles_lst))
+            text_message = f'''
+--------------------
+Добавить роль   {config["PREFIX"]}get_role 
+--------------------
+Удалить роль   {config["PREFIX"]}delete_role 
+--------------------
+
+- {roles_lst}
+'''
+        else:
+            text_message = f"""Доступных ролей нету
+--------------------
+{config["PREFIX"]}get_role [role_name] - добавить роль"""
+        return text_message
+
+
     async def get_server_roles(ctx)->list:
         server_roles = [role.name for role in ctx.guild.roles if role.name != "@everyone"]
         return server_roles
@@ -64,9 +83,9 @@ class bot_functions:
         db = database(server_id)
         roles_message_id = db.get_roles_message()
         if roles_message_id != None:
-            roles = db.get_roles()
-            server_roles = [role.name for role in ctx.guild.roles if role.name != "@everyone"]
-            for role in roles:
+            roles_lst = db.get_roles()
+            server_roles = bot_functions.get_server_roles(ctx=ctx)
+            for role in roles_lst:
                 if role not in server_roles:
                     db.delete_role(role) #delete role if role not in server
             try:
@@ -75,21 +94,7 @@ class bot_functions:
                 if channel != None:
                     message = await channel.fetch_message(roles_message_id)
                     if message != None:
-                        roles_lst = "\n- ".join(sorted(roles))
-                        if roles_lst != []:
-                            text_message = f'''
---------------------
-Добавить роль   {config["PREFIX"]}get_role 
---------------------
-Удалить роль   {config["PREFIX"]}delete_role 
---------------------
-
-- {roles_lst}
-'''
-                        else:
-                            text_message = f"""Доступных ролей нету
---------------------
-{config["PREFIX"]}get_role [role_name] - добавить роль"""
+                        text_message = bot_functions.get_roles_message_text(roles_lst=roles_lst)
                         await message.edit(content=text_message)
             except:
                 await ctx.send("Команда введена не в канале с сообщением или сообщение было удалено")
