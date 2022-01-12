@@ -14,23 +14,23 @@ intents = discord.Intents().all()
 bot = commands.Bot(command_prefix=config["PREFIX"], intents=intents)
 
 
-#error event
+# error event
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, CommandNotFound): #если это не вызов не существующей функции
+    if isinstance(error, CommandNotFound):  # если это не вызов не существующей функции
         return
 
-    if isinstance(error, CheckFailure): #если фильтр возвращает False
-        return 
-    
+    if isinstance(error, CheckFailure):  # если фильтр возвращает False
+        return
+
     print("\n---------------------------")
     print(datetime.now())
     raise error
 
 
-#auto event
+# auto event
 @bot.event
-async def on_ready()->None:
+async def on_ready() -> None:
     bot_game = config["BOT_GAME_NAME"]
     await bot.change_presence(activity=discord.Game(name=bot_game))
     print("\n----------------------------------------")
@@ -40,17 +40,17 @@ async def on_ready()->None:
     event_loops(bot=bot)
 
 
-#auto event
+# auto event
 @bot.event
 async def on_guild_join(guild):
     db = database(guild.id)
     db.close()
 
 
-#auto event
+# auto event
 @bot.event
 @bot_filters.server_is_active()
-async def on_member_join(member)->None:
+async def on_member_join(member) -> None:
     db = database(server_id=member.guild.id)
     default_roles = db.get_default_roles()
     if default_roles != []:
@@ -60,30 +60,35 @@ async def on_member_join(member)->None:
                 await member.add_roles(role)
             except:
                 continue
-    date = datetime.datetime.now() #get date and time
+    date = datetime.datetime.now()  # get date and time
     log_channel = db.get_log_channel()
     if log_channel != None:
-        channel = bot.get_channel(id=log_channel) #get log channel 
-        await channel.send(f"{date.year}.{date.month}.{date.day} {date.hour}:{date.minute} | {member.name} join")
+        channel = bot.get_channel(id=log_channel)  # get log channel
+        await channel.send(
+            f"{date.year}.{date.month}.{date.day} {date.hour}:{date.minute} | {member.name} join"
+        )
     db.close()
 
-#auto event
+
+# auto event
 @bot.event
 @bot_filters.server_is_active()
-async def on_member_remove(member)->None:
+async def on_member_remove(member) -> None:
     db = database(server_id=member.guild.id)
     log_channel = db.get_log_channel()
     if log_channel != None:
         date = datetime.datetime.now()
         channel = bot.get_channel(id=log_channel)
-        await channel.send(f"{date.year}.{date.month}.{date.day} {date.hour}:{date.minute} | {member.name} leave")
+        await channel.send(
+            f"{date.year}.{date.month}.{date.day} {date.hour}:{date.minute} | {member.name} leave"
+        )
     db.close()
 
 
-#user event
+# user event
 @bot.command(name="get_role")
 @bot_filters.server_is_active()
-async def get_role(ctx, *args)->None:
+async def get_role(ctx, *args) -> None:
     await ctx.message.delete()
     role_name = " ".join(args)
     db = database(server_id=ctx.guild.id)
@@ -98,17 +103,18 @@ async def get_role(ctx, *args)->None:
                 await ctx.reply(f"{ctx.author.name} добавил роль {role_name}")
             except:
                 await ctx.reply("При добавлении роли произошла ошибка")
-    
+
     elif role_name in db.get_default_roles():
         await ctx.reply("Это дефолтная роль")
     else:
         await ctx.reply("Такая роль не существует или ее нельзя добавить")
     db.close()
 
-#user event
+
+# user event
 @bot.command(name="delete_role")
 @bot_filters.server_is_active()
-async def delete_role(ctx, *args)->None:
+async def delete_role(ctx, *args) -> None:
     await ctx.message.delete()
     role_name = " ".join(args)
     db = database(server_id=ctx.guild.id)
@@ -129,44 +135,37 @@ async def delete_role(ctx, *args)->None:
 
 @bot.command(name="set_roles_message")
 @bot_filters.server_and_admin_filter()
-async def set_roles_message(ctx)->None: #в канале создается изменяемое сообщение и обрабатываются только команды добавленя ролей написанные в нем
+async def set_roles_message(ctx) -> None:
+    # в канале создается изменяемое сообщение и обрабатываются только команды добавленя ролей написанные в нем
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
-    channel = bot.get_channel(id=ctx.channel.id)
-    roles_lst = db.get_roles()
-    text_message = await bot_functions.get_roles_message_text(roles_lst=roles_lst)
+    await bot_functions.delete_roles_message(bot=bot, ctx=ctx)
+    text_message = await bot_functions.get_roles_message_text(roles_lst=db.get_roles())
     message = await ctx.send(text_message)
-    message_id = message.id
-    db.add_roles_data(message_id=message_id, channel_id=ctx.channel.id)
+    db.add_roles_data(message_id=message.id, channel_id=ctx.channel.id)
     db.close()
 
-#admin command
+
+# admin command
 @bot.command(name="delete_roles_message")
 @bot_filters.server_and_admin_filter()
-async def delete_roles_message(ctx)->None:
+async def delete_roles_message(ctx) -> None:
     await ctx.message.delete()
-    db = database(server_id=ctx.guild.id)
-    channel = bot.get_channel(id=db.get_roles_channel())
-    try:
-        message = await channel.fetch_message(db.get_roles_message())
-        await message.delete()
-    except:
-        await ctx.send("Сообщение не существует")
-    db.delete_roles_data()
+    await bot_functions.delete_roles_message(bot=bot, ctx=ctx)
     await ctx.send("Roles message удалено")
-    db.close()
+
 
 @bot.command(name="update_roles_message")
 @bot_filters.server_and_admin_filter()
-async def update_roles_message(ctx)->None:
+async def update_roles_message(ctx) -> None:
     await ctx.message.delete()
     await bot_functions.update_roles_message(bot=bot, ctx=ctx)
 
 
-#admin commands
+# admin commands
 @bot.command(name="add_role_for_users")
 @bot_filters.server_and_admin_filter()
-async def add_role_for_users(ctx)->None:
+async def add_role_for_users(ctx) -> None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
     server_roles = await bot_functions.get_server_roles(ctx=ctx)
@@ -183,10 +182,11 @@ async def add_role_for_users(ctx)->None:
         await ctx.send("Такой роли на сервере нет")
     db.close()
 
-#admin event
+
+# admin event
 @bot.command(name="delete_role_for_users")
 @bot_filters.server_and_admin_filter()
-async def delete_role_for_users(ctx)->None:
+async def delete_role_for_users(ctx) -> None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
     server_roles = await bot_functions.get_server_roles(ctx=ctx)
@@ -202,10 +202,10 @@ async def delete_role_for_users(ctx)->None:
     db.close()
 
 
-#admin event
+# admin event
 @bot.command(name="add_default_role")
 @bot_filters.server_and_admin_filter()
-async def add_default_role(ctx)->None:
+async def add_default_role(ctx) -> None:
     await ctx.message.delete()
     server_id = ctx.guild.id
     db = database(server_id=server_id)
@@ -223,10 +223,11 @@ async def add_default_role(ctx)->None:
         await ctx.send("Такой роли на сервере нет")
     db.close()
 
-#admin event
+
+# admin event
 @bot.command(name="delete_default_role")
 @bot_filters.server_and_admin_filter()
-async def delete_default_role(ctx)->None:
+async def delete_default_role(ctx) -> None:
     await ctx.message.delete()
     server_id = ctx.guild.id
     db = database(server_id=server_id)
@@ -242,10 +243,10 @@ async def delete_default_role(ctx)->None:
     db.close()
 
 
-#admin_event
+# admin_event
 @bot.command(name="set_log_channel")
 @bot_filters.server_and_admin_filter()
-async def set_log_channel(ctx)->None:
+async def set_log_channel(ctx) -> None:
     await ctx.message.delete()
     server_id = ctx.guild.id
     db = database(server_id=server_id)
@@ -253,10 +254,11 @@ async def set_log_channel(ctx)->None:
     await ctx.send("Log канал установлен")
     db.close()
 
-#admin event
+
+# admin event
 @bot.command(name="delete_log_channel")
 @bot_filters.server_and_admin_filter()
-async def delete_log_channel(ctx)->None:
+async def delete_log_channel(ctx) -> None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
     db.delete_log_channel()
@@ -264,20 +266,21 @@ async def delete_log_channel(ctx)->None:
     db.close()
 
 
-#admin event
+# admin event
 @bot.command(name="set_notification_channel")
 @bot_filters.server_and_admin_filter()
-async def set_notification_channel(ctx)->None:
+async def set_notification_channel(ctx) -> None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
     db.add_notification_channel(ctx.channel.id)
     await ctx.send("Канал для уведомлений установлен")
     db.close()
 
-#admin event
+
+# admin event
 @bot.command(name="delete_notification_channel")
 @bot_filters.server_and_admin_filter()
-async def delete_notification_channel(ctx)->None:
+async def delete_notification_channel(ctx) -> None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
     db.delete_notification_channel(ctx.channel.id)
@@ -285,10 +288,10 @@ async def delete_notification_channel(ctx)->None:
     db.close()
 
 
-#admin event
+# admin event
 @bot.command(name="add_admin")
 @bot_filters.server_and_admin_filter()
-async def add_admin(ctx, user: discord.User)->None:
+async def add_admin(ctx, user: discord.User) -> None:
     try:
         await ctx.message.delete()
         db = database(server_id=ctx.guild.id)
@@ -300,11 +303,12 @@ async def add_admin(ctx, user: discord.User)->None:
     except:
         await ctx.send(f"Ошибка при добавлении админа {ctx.author.name}")
     db.close()
-    
-#admin event
+
+
+# admin event
 @bot.command(name="delete_admin")
 @bot_filters.server_and_admin_filter()
-async def delete_admin(ctx, user: discord.User)->None:
+async def delete_admin(ctx, user: discord.User) -> None:
     try:
         await ctx.message.delete()
         db = database(server_id=ctx.guild.id)
@@ -322,25 +326,28 @@ async def delete_admin(ctx, user: discord.User)->None:
 @bot_filters.is_admin()
 async def on_server(ctx):
     await ctx.message.delete()
-    if bot_filters.server_is_active_predicate(ctx) == False:
+    if await bot_filters.server_is_active_predicate(ctx) == False:
         db = database(server_id=ctx.guild.id)
+        db.off_server()
         await ctx.send("Сервер включен")
         db.close()
     else:
         await ctx.send("Сервер уже включен")
 
+
 @bot.command(name="off_server")
 @bot_filters.is_admin()
 async def off_server(ctx):
     await ctx.message.delete()
-    if bot_filters.server_is_active_predicate(ctx) == True:
+    if await bot_filters.server_is_active_predicate(ctx) == True:
         db = database(server_id=ctx.guild.id)
+        db.off_server()
         await ctx.send("Сервер выключен")
         db.close()
     else:
         await ctx.send("Сервер уже выключен")
 
 
-#run bot
+# run bot
 if __name__ == "__main__":
     bot.run(config["TOKEN"])
