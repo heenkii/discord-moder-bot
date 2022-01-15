@@ -38,8 +38,8 @@ class bot_filters(filters):
     def server_is_active():
         return commands.check(predicate=bot_filters.server_is_active_predicate)
 
-    def server_and_admin_filter() -> bool:
-        async def predicate(ctx):
+    def server_and_admin_filter(:
+        async def predicate(ctx) -> bool:
             return await bot_filters.is_admin_predicate(
                 ctx
             ) and await bot_filters.server_is_active_predicate(ctx)
@@ -53,9 +53,9 @@ class bot_functions:
             roles_lst = "\n- ".join(sorted(roles_lst))
             text_message = f"""
 --------------------
-Добавить роль   {config["PREFIX"]}get_role 
+Добавить роль   {config["PREFIX"]}get_role
 --------------------
-Удалить роль   {config["PREFIX"]}delete_role 
+Удалить роль   {config["PREFIX"]}delete_role
 --------------------
 
 - {roles_lst}
