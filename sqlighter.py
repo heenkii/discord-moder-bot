@@ -1,6 +1,5 @@
 import sqlite3
 
-from discord import message
 from settings import config
 
 
