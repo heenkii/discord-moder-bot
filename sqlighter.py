@@ -22,6 +22,7 @@ class database:
             server_state INT);
         """
         )
+        self.db.commit()
 
     def get_values(self, column_name) -> list:
         ans = self.sql.execute(
