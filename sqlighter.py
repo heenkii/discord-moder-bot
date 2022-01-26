@@ -9,7 +9,6 @@ class database:
         self.sql = self.db.cursor()
 
         self.table = f"server_{server_id}"
-        self.server_id = server_id
 
         self.sql.execute(
             f"""CREATE TABLE IF NOT EXISTS {self.table} (
