@@ -4,6 +4,7 @@ from discord.ext import commands
 
 
 class filters:
+
     def server_is_active(server_id: int) -> bool:
         db = database(server_id)
         server_state = db.get_server_state()
@@ -23,6 +24,7 @@ class filters:
 
 
 class bot_filters(filters):
+
     async def is_admin_predicate(ctx) -> bool:
         user_id = ctx.author.id
         server_id = ctx.guild.id
@@ -38,28 +40,26 @@ class bot_filters(filters):
     def server_is_active():
         return commands.check(predicate=bot_filters.server_is_active_predicate)
 
-    def server_and_admin_filter(:
-        async def predicate(ctx) -> bool:
-            return await bot_filters.is_admin_predicate(
-                ctx
-            ) and await bot_filters.server_is_active_predicate(ctx)
-
+    def server_and_admin_filter() -> bool:
+        async def predicate(ctx):
+            return await bot_filters.is_admin_predicate(ctx) and await bot_filters.server_is_active_predicate(ctx)
         return commands.check(predicate=predicate)
 
 
 class bot_functions:
+
     async def get_roles_message_text(roles_lst) -> str:
         if len(roles_lst) != []:
             roles_lst = "\n- ".join(sorted(roles_lst))
-            text_message = f"""
+            text_message = f'''
 --------------------
-Добавить роль   {config["PREFIX"]}get_role
+Добавить роль   {config["PREFIX"]}get_role 
 --------------------
-Удалить роль   {config["PREFIX"]}delete_role
+Удалить роль   {config["PREFIX"]}delete_role 
 --------------------
 
 - {roles_lst}
-"""
+'''
         else:
             text_message = f"""Доступных ролей нету
 --------------------
@@ -80,14 +80,12 @@ class bot_functions:
 
     async def get_server_roles(ctx) -> list:
         server_roles = [
-            role.name for role in ctx.guild.roles if role.name != "@everyone"
-        ]
+            role.name for role in ctx.guild.roles if role.name != "@everyone"]
         return server_roles
 
     async def get_user_roles(ctx) -> list:
         user_roles = [
-            role.name for role in ctx.message.author.roles if role.name != "@everyone"
-        ]
+            role.name for role in ctx.message.author.roles if role.name != "@everyone"]
         return user_roles
 
     async def update_roles_message(bot, ctx):
@@ -106,14 +104,10 @@ class bot_functions:
                 if channel != None:
                     message = await channel.fetch_message(roles_message_id)
                     if message != None:
-                        text_message = await bot_functions.get_roles_message_text(
-                            roles_lst=roles_lst
-                        )
+                        text_message = await bot_functions.get_roles_message_text(roles_lst=roles_lst)
                         await message.edit(content=text_message)
             except:
-                await ctx.send(
-                    "Команда введена не в канале с сообщением или сообщение было удалено"
-                )
+                await ctx.send("Команда введена не в канале с сообщением или сообщение было удалено")
         else:
             await ctx.send("Не установлено сообщение с ролями")
         db.close()

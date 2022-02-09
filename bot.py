@@ -76,7 +76,7 @@ async def on_member_remove(member) -> None:
     db = database(server_id=member.guild.id)
     log_channel = db.get_log_channel()
     if log_channel != None:
-        date = datetime.datetime.now()
+        date = datetime.now()
         channel = bot.get_channel(id=log_channel)
         await channel.send(f"{date.year}.{date.month}.{date.day} {date.hour}:{date.minute} | {member.name} leave")
     db.close()
