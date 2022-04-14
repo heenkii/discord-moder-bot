@@ -92,19 +92,19 @@ async def get_role(ctx, *args) -> None:
     if role_name in db.get_roles():
         user_roles = await bot_functions.get_user_roles(ctx=ctx)
         if role_name in user_roles:
-            await ctx.reply("Роль уже добавлена")
+            await ctx.send("Роль уже добавлена")
         else:
             try:
                 role = discord.utils.get(ctx.guild.roles, name=role_name)
                 await ctx.author.add_roles(role)
-                await ctx.reply(f"{ctx.author.name} добавил роль {role_name}")
+                await ctx.send(f"{ctx.author.name} добавил роль {role_name}")
             except:
-                await ctx.reply("При добавлении роли произошла ошибка")
+                await ctx.send("При добавлении роли произошла ошибка")
 
     elif role_name in db.get_default_roles():
-        await ctx.reply("Это дефолтная роль")
+        await ctx.send("Это дефолтная роль")
     else:
-        await ctx.reply("Такая роль не существует или ее нельзя добавить")
+        await ctx.send("Такая роль не существует или ее нельзя добавить")
     db.close()
 
 
@@ -117,16 +117,16 @@ async def delete_role(ctx, *args) -> None:
     db = database(server_id=ctx.guild.id)
     user_roles = await bot_functions.get_user_roles(ctx=ctx)
     if role_name in db.get_default_roles() or role_name not in db.get_roles():
-        await ctx.reply("Эту роль невозможно удалить")
+        await ctx.send("Эту роль невозможно удалить")
     elif role_name in user_roles:
         try:
             role = discord.utils.get(ctx.guild.roles, name=role_name)
             await ctx.author.remove_roles(user_roles[role_name])
-            await ctx.reply(f"{ctx.author.name} удалил роль {role_name}")
+            await ctx.send(f"{ctx.author.name} удалил роль {role_name}")
         except:
-            await ctx.reply("При удалении роли произошла ошибка")
+            await ctx.send("При удалении роли произошла ошибка")
     else:
-        await ctx.reply("Такая роль не существует или не принадлежит вам")
+        await ctx.send("Такая роль не существует или не принадлежит вам")
     db.close()
 
 
