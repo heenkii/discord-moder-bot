@@ -86,7 +86,6 @@ async def on_member_remove(member) -> None:
 @bot.command(name="get_role")
 @bot_filters.server_is_active()
 async def get_role(ctx, *args) -> None:
-    await ctx.message.delete()
     role_name = " ".join(args)
     db = database(server_id=ctx.guild.id)
     if role_name in db.get_roles():
@@ -112,7 +111,6 @@ async def get_role(ctx, *args) -> None:
 @bot.command(name="delete_role")
 @bot_filters.server_is_active()
 async def delete_role(ctx, *args) -> None:
-    await ctx.message.delete()
     role_name = " ".join(args)
     db = database(server_id=ctx.guild.id)
     user_roles = await bot_functions.get_user_roles(ctx=ctx)
@@ -121,7 +119,7 @@ async def delete_role(ctx, *args) -> None:
     elif role_name in user_roles:
         try:
             role = discord.utils.get(ctx.guild.roles, name=role_name)
-            await ctx.author.remove_roles(user_roles[role_name])
+            await ctx.author.remove_roles(role)
             await ctx.send(f"{ctx.author.name} удалил роль {role_name}")
         except:
             await ctx.send("При удалении роли произошла ошибка")
@@ -131,8 +129,8 @@ async def delete_role(ctx, *args) -> None:
 
 
 # admin event
-@bot.command(name="set_roles_message")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="set_roles_message")
+@ bot_filters.server_and_admin_filter()
 # в канале создается изменяемое сообщение и обрабатываются только команды добавленя ролей написанные в нем
 async def set_roles_message(ctx) -> None:
     await ctx.message.delete()
@@ -145,26 +143,25 @@ async def set_roles_message(ctx) -> None:
 
 
 # admin event
-@bot.command(name="delete_roles_message")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="delete_roles_message")
+@ bot_filters.server_and_admin_filter()
 async def delete_roles_message(ctx) -> None:
     await ctx.message.delete()
     await bot_functions.delete_roles_message(bot=bot, ctx=ctx)
     await ctx.send("Roles message удалено")
 
+
 # admin event
-
-
-@bot.command(name="update_roles_message")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="update_roles_message")
+@ bot_filters.server_and_admin_filter()
 async def update_roles_message(ctx) -> None:
     await ctx.message.delete()
     await bot_functions.update_roles_message(bot=bot, ctx=ctx)
 
 
 # admin event
-@bot.command(name="add_role_for_users")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="add_role_for_users")
+@ bot_filters.server_and_admin_filter()
 async def add_role_for_users(ctx) -> None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
@@ -184,8 +181,8 @@ async def add_role_for_users(ctx) -> None:
 
 
 # admin event
-@bot.command(name="delete_role_for_users")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="delete_role_for_users")
+@ bot_filters.server_and_admin_filter()
 async def delete_role_for_users(ctx) -> None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
@@ -203,8 +200,8 @@ async def delete_role_for_users(ctx) -> None:
 
 
 # admin event
-@bot.command(name="add_default_role")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="add_default_role")
+@ bot_filters.server_and_admin_filter()
 async def add_default_role(ctx) -> None:
     await ctx.message.delete()
     server_id = ctx.guild.id
@@ -226,8 +223,8 @@ async def add_default_role(ctx) -> None:
 
 
 # admin event
-@bot.command(name="delete_default_role")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="delete_default_role")
+@ bot_filters.server_and_admin_filter()
 async def delete_default_role(ctx) -> None:
     await ctx.message.delete()
     server_id = ctx.guild.id
@@ -246,8 +243,8 @@ async def delete_default_role(ctx) -> None:
 
 
 # admin_event
-@bot.command(name="set_log_channel")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="set_log_channel")
+@ bot_filters.server_and_admin_filter()
 async def set_log_channel(ctx) -> None:
     await ctx.message.delete()
     server_id = ctx.guild.id
@@ -258,8 +255,8 @@ async def set_log_channel(ctx) -> None:
 
 
 # admin event
-@bot.command(name="delete_log_channel")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="delete_log_channel")
+@ bot_filters.server_and_admin_filter()
 async def delete_log_channel(ctx) -> None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
@@ -269,8 +266,8 @@ async def delete_log_channel(ctx) -> None:
 
 
 # admin event
-@bot.command(name="set_notification_channel")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="set_notification_channel")
+@ bot_filters.server_and_admin_filter()
 async def set_notification_channel(ctx) -> None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
@@ -280,8 +277,8 @@ async def set_notification_channel(ctx) -> None:
 
 
 # admin event
-@bot.command(name="delete_notification_channel")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="delete_notification_channel")
+@ bot_filters.server_and_admin_filter()
 async def delete_notification_channel(ctx) -> None:
     await ctx.message.delete()
     db = database(server_id=ctx.guild.id)
@@ -291,8 +288,8 @@ async def delete_notification_channel(ctx) -> None:
 
 
 # admin event
-@bot.command(name="add_admin")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="add_admin")
+@ bot_filters.server_and_admin_filter()
 async def add_admin(ctx, user: discord.User) -> None:
     try:
         await ctx.message.delete()
@@ -308,8 +305,8 @@ async def add_admin(ctx, user: discord.User) -> None:
 
 
 # admin event
-@bot.command(name="delete_admin")
-@bot_filters.server_and_admin_filter()
+@ bot.command(name="delete_admin")
+@ bot_filters.server_and_admin_filter()
 async def delete_admin(ctx, user: discord.User) -> None:
     try:
         await ctx.message.delete()
@@ -325,8 +322,8 @@ async def delete_admin(ctx, user: discord.User) -> None:
 
 
 # admin event
-@bot.command(name="on_server")
-@bot_filters.is_admin()
+@ bot.command(name="on_server")
+@ bot_filters.is_admin()
 async def on_server(ctx):
     await ctx.message.delete()
     if await bot_filters.server_is_active_predicate(ctx) == False:
@@ -339,8 +336,8 @@ async def on_server(ctx):
 
 
 # admin event
-@bot.command(name="off_server")
-@bot_filters.is_admin()
+@ bot.command(name="off_server")
+@ bot_filters.is_admin()
 async def off_server(ctx):
     await ctx.message.delete()
     if await bot_filters.server_is_active_predicate(ctx) == True:
