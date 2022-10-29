@@ -1,4 +1,4 @@
-# discord_bot_infobez
+# discord_bot
 
 есть 2 типа команд:
 
